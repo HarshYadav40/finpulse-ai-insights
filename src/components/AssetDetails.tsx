@@ -44,7 +44,7 @@ const AssetDetails: React.FC<AssetDetailsProps> = ({
   const { toast } = useToast();
 
   const GEMINI_API_KEY = "AIzaSyAYmEj1tHJMiRm7lMsQbJ83Tf3IfkkY0Fg";
-  const FINNHUB_API_KEY = "d0ob5lhr01qu2361ioa0";
+  const FINNHUB_API_KEY = "d0ob5lhr01qu2361ioa0d0ob5lhr01qu2361ioag";
 
   const fetchRealTimePrice = async (symbol: string) => {
     if (!symbol) return;
@@ -175,14 +175,16 @@ Keep the response concise but comprehensive (max 800 words).`;
     }
   };
 
-  // Fetch real-time price when asset changes
+  // Fetch real-time price when asset changes and set up 5-second polling
   useEffect(() => {
     if (selectedAsset) {
+      // Initial fetch
       fetchRealTimePrice(selectedAsset.symbol);
-      // Set up periodic price updates every 30 seconds
+      
+      // Set up polling every 5 seconds
       const interval = setInterval(() => {
         fetchRealTimePrice(selectedAsset.symbol);
-      }, 30000);
+      }, 5000);
       
       return () => clearInterval(interval);
     }
@@ -216,14 +218,15 @@ Keep the response concise but comprehensive (max 800 words).`;
   }
 
   const displayPrice = realTimePrice ? realTimePrice.current.toFixed(2) : selectedAsset.price;
-  const displayChange = realTimePrice ? realTimePrice.changePercent.toFixed(2) : selectedAsset.change;
+  const displayChange = realTimePrice ? realTimePrice.change.toFixed(2) : '0.00';
+  const displayChangePercent = realTimePrice ? realTimePrice.changePercent.toFixed(2) : selectedAsset.change;
 
   return (
     <div className="space-y-6">
-      {/* Asset Overview */}
-      <Card className="glass-card">
-        <CardHeader>
-          <div className="flex items-center justify-between">
+      {/* Prominent Real-Time Price Display */}
+      <Card className="glass-card border-2">
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-lg">
@@ -231,8 +234,8 @@ Keep the response concise but comprehensive (max 800 words).`;
                 </span>
               </div>
               <div>
-                <CardTitle className="text-xl">{selectedAsset.name}</CardTitle>
-                <p className="text-muted-foreground">{selectedAsset.symbol}</p>
+                <h2 className="text-2xl font-bold">{selectedAsset.name}</h2>
+                <p className="text-muted-foreground font-mono">{selectedAsset.symbol}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -240,57 +243,68 @@ Keep the response concise but comprehensive (max 800 words).`;
                 {selectedAsset.category}
               </Badge>
               {realTimePrice && (
-                <Badge variant="secondary" className="text-xs">
-                  Live
+                <Badge variant="secondary" className="text-xs animate-pulse">
+                  LIVE
                 </Badge>
               )}
+              {isLoadingPrice && <RefreshCw className="w-4 h-4 animate-spin text-blue-500" />}
             </div>
           </div>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-6">
+          
+          <div className="flex items-end gap-6">
             <div>
-              <p className="text-sm text-muted-foreground">Current Price</p>
-              <div className="flex items-center gap-2">
-                <p className="text-3xl font-bold font-mono">{displayPrice}</p>
-                {isLoadingPrice && <RefreshCw className="w-4 h-4 animate-spin" />}
-              </div>
+              <p className="text-sm text-muted-foreground mb-1">Current Price</p>
+              <p className="text-5xl font-bold font-mono tracking-tight">${displayPrice}</p>
             </div>
-            <div className="flex items-center gap-2">
-              {Number(displayChange) > 0 ? (
-                <TrendingUp className="w-5 h-5 text-bull-500" />
-              ) : (
-                <TrendingDown className="w-5 h-5 text-bear-500" />
-              )}
-              <span className={`text-lg font-semibold ${
-                Number(displayChange) > 0 ? 'text-bull-600' : 'text-bear-600'
-              }`}>
-                {Number(displayChange) > 0 ? '+' : ''}{displayChange}%
-              </span>
-              <span className="text-sm text-muted-foreground">24h</span>
+            
+            <div className="flex items-center gap-3 pb-2">
+              <div className="flex items-center gap-2">
+                {Number(displayChangePercent) >= 0 ? (
+                  <TrendingUp className="w-6 h-6 text-green-500" />
+                ) : (
+                  <TrendingDown className="w-6 h-6 text-red-500" />
+                )}
+                <div className="text-right">
+                  <p className={`text-2xl font-bold ${
+                    Number(displayChangePercent) >= 0 ? 'text-green-500' : 'text-red-500'
+                  }`}>
+                    {Number(displayChangePercent) >= 0 ? '+' : ''}{displayChangePercent}%
+                  </p>
+                  <p className={`text-lg font-mono ${
+                    Number(displayChange) >= 0 ? 'text-green-600' : 'text-red-600'
+                  }`}>
+                    {Number(displayChange) >= 0 ? '+' : ''}${displayChange}
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
           
           {realTimePrice && (
-            <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+            <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm border-t pt-4">
               <div>
                 <p className="text-muted-foreground">Open</p>
-                <p className="font-mono">{realTimePrice.open.toFixed(2)}</p>
+                <p className="font-mono font-semibold">${realTimePrice.open.toFixed(2)}</p>
               </div>
               <div>
                 <p className="text-muted-foreground">High</p>
-                <p className="font-mono text-bull-600">{realTimePrice.high.toFixed(2)}</p>
+                <p className="font-mono font-semibold text-green-600">${realTimePrice.high.toFixed(2)}</p>
               </div>
               <div>
                 <p className="text-muted-foreground">Low</p>
-                <p className="font-mono text-bear-600">{realTimePrice.low.toFixed(2)}</p>
+                <p className="font-mono font-semibold text-red-600">${realTimePrice.low.toFixed(2)}</p>
               </div>
               <div>
                 <p className="text-muted-foreground">Prev Close</p>
-                <p className="font-mono">{realTimePrice.previousClose.toFixed(2)}</p>
+                <p className="font-mono font-semibold">${realTimePrice.previousClose.toFixed(2)}</p>
               </div>
             </div>
           )}
+          
+          <div className="mt-4 text-xs text-muted-foreground flex items-center gap-2">
+            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+            Real-time data • Updates every 5 seconds • Powered by Finnhub
+          </div>
         </CardContent>
       </Card>
 
