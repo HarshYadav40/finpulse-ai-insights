@@ -1,11 +1,107 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+
+import React, { useState, useEffect } from 'react';
+import Header from '@/components/Header';
+import QuickAccess from '@/components/QuickAccess';
+import AssetDetails from '@/components/AssetDetails';
+import SectorHeatmap from '@/components/SectorHeatmap';
+
+interface Asset {
+  symbol: string;
+  name: string;
+  price: string;
+  change: number;
+  category: 'stock' | 'crypto' | 'forex' | 'index';
+}
 
 const Index = () => {
+  const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isDark, setIsDark] = useState(true);
+  const [perplexityApiKey, setPerplexityApiKey] = useState('');
+
+  // Load theme and API key from localStorage on mount
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('finpulse-theme');
+    const savedApiKey = localStorage.getItem('finpulse-perplexity-key');
+    
+    if (savedTheme) {
+      setIsDark(savedTheme === 'dark');
+    }
+    
+    if (savedApiKey) {
+      setPerplexityApiKey(savedApiKey);
+    }
+    
+    // Apply theme to document
+    document.documentElement.classList.toggle('dark', savedTheme === 'dark' || (!savedTheme && true));
+  }, []);
+
+  // Save theme changes to localStorage
+  useEffect(() => {
+    localStorage.setItem('finpulse-theme', isDark ? 'dark' : 'light');
+    document.documentElement.classList.toggle('dark', isDark);
+  }, [isDark]);
+
+  // Save API key to localStorage
+  useEffect(() => {
+    if (perplexityApiKey) {
+      localStorage.setItem('finpulse-perplexity-key', perplexityApiKey);
+    }
+  }, [perplexityApiKey]);
+
+  const handleAssetSelect = (asset: Asset) => {
+    setSelectedAsset(asset);
+    console.log('Selected asset:', asset);
+  };
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    console.log('Search query:', query);
+    // TODO: Implement search functionality with real API
+  };
+
+  const handleThemeToggle = () => {
+    setIsDark(!isDark);
+  };
+
+  const handleApiKeyChange = (key: string) => {
+    setPerplexityApiKey(key);
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-gray-600">Start building your amazing project here!</p>
+    <div className="min-h-screen bg-gradient-to-br from-financial-50 via-background to-financial-100 dark:from-financial-900 dark:via-background dark:to-financial-800">
+      <div className="container mx-auto px-4 py-6 max-w-7xl">
+        <Header 
+          onSearch={handleSearch}
+          searchQuery={searchQuery}
+          isDark={isDark}
+          onThemeToggle={handleThemeToggle}
+        />
+        
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          {/* Left Column - Asset Selection & Details */}
+          <div className="xl:col-span-2 space-y-6">
+            <QuickAccess onAssetSelect={handleAssetSelect} />
+            <AssetDetails 
+              selectedAsset={selectedAsset}
+              perplexityApiKey={perplexityApiKey}
+              onApiKeyChange={handleApiKeyChange}
+            />
+          </div>
+          
+          {/* Right Column - Sector Heatmap */}
+          <div className="xl:col-span-1">
+            <SectorHeatmap />
+          </div>
+        </div>
+        
+        {/* Footer */}
+        <div className="mt-12 text-center text-sm text-muted-foreground">
+          <p>FinPulse • AI-Powered Financial Market Analysis</p>
+          <p className="mt-1">
+            Real-time data powered by Finnhub • AI insights by Perplexity
+          </p>
+        </div>
       </div>
     </div>
   );
