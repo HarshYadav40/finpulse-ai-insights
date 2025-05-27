@@ -57,7 +57,6 @@ const Index = () => {
   const handleSearch = (query: string) => {
     setSearchQuery(query);
     console.log('Search query:', query);
-    // TODO: Implement search functionality with real API
   };
 
   const handleThemeToggle = () => {
@@ -69,7 +68,7 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-financial-50 via-background to-financial-100 dark:from-financial-900 dark:via-background dark:to-financial-800">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-700">
       <div className="container mx-auto px-4 py-6 max-w-7xl">
         <Header 
           onSearch={handleSearch}
