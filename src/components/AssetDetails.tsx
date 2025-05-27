@@ -1,12 +1,11 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { TrendingUp, TrendingDown, Brain, RefreshCw, AlertTriangle, Globe } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import PriceChart from './PriceChart';
 
 interface Asset {
   symbol: string;
@@ -295,21 +294,8 @@ Keep the response concise but comprehensive (max 800 words).`;
         </CardContent>
       </Card>
 
-      {/* TradingView Chart Placeholder */}
-      <Card className="glass-card">
-        <CardHeader>
-          <CardTitle>Price Chart</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="h-96 bg-muted/30 rounded-lg flex items-center justify-center border-2 border-dashed border-muted-foreground/25">
-            <div className="text-center">
-              <TrendingUp className="w-12 h-12 text-muted-foreground mx-auto mb-2" />
-              <p className="text-muted-foreground">TradingView Chart Integration</p>
-              <p className="text-sm text-muted-foreground">Real-time price chart for {selectedAsset.symbol}</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* ApexCharts Price Chart */}
+      <PriceChart selectedAsset={selectedAsset} isDark={true} />
 
       {/* AI Insights */}
       <Card className="glass-card">
