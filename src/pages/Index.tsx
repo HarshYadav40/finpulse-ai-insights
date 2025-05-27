@@ -17,19 +17,19 @@ const Index = () => {
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isDark, setIsDark] = useState(true);
-  const [perplexityApiKey, setPerplexityApiKey] = useState('');
+  const [geminiApiKey, setGeminiApiKey] = useState('');
 
   // Load theme and API key from localStorage on mount
   useEffect(() => {
     const savedTheme = localStorage.getItem('finpulse-theme');
-    const savedApiKey = localStorage.getItem('finpulse-perplexity-key');
+    const savedApiKey = localStorage.getItem('finpulse-gemini-key');
     
     if (savedTheme) {
       setIsDark(savedTheme === 'dark');
     }
     
     if (savedApiKey) {
-      setPerplexityApiKey(savedApiKey);
+      setGeminiApiKey(savedApiKey);
     }
     
     // Apply theme to document
@@ -44,10 +44,10 @@ const Index = () => {
 
   // Save API key to localStorage
   useEffect(() => {
-    if (perplexityApiKey) {
-      localStorage.setItem('finpulse-perplexity-key', perplexityApiKey);
+    if (geminiApiKey) {
+      localStorage.setItem('finpulse-gemini-key', geminiApiKey);
     }
-  }, [perplexityApiKey]);
+  }, [geminiApiKey]);
 
   const handleAssetSelect = (asset: Asset) => {
     setSelectedAsset(asset);
@@ -65,7 +65,7 @@ const Index = () => {
   };
 
   const handleApiKeyChange = (key: string) => {
-    setPerplexityApiKey(key);
+    setGeminiApiKey(key);
   };
 
   return (
@@ -84,7 +84,7 @@ const Index = () => {
             <QuickAccess onAssetSelect={handleAssetSelect} />
             <AssetDetails 
               selectedAsset={selectedAsset}
-              perplexityApiKey={perplexityApiKey}
+              perplexityApiKey={geminiApiKey}
               onApiKeyChange={handleApiKeyChange}
             />
           </div>
@@ -99,7 +99,7 @@ const Index = () => {
         <div className="mt-12 text-center text-sm text-muted-foreground">
           <p>FinPulse • AI-Powered Financial Market Analysis</p>
           <p className="mt-1">
-            Real-time data powered by Finnhub • AI insights by Perplexity
+            Real-time data powered by Finnhub • AI insights by Google Gemini
           </p>
         </div>
       </div>

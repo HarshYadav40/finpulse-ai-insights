@@ -22,21 +22,87 @@ interface AssetDetailsProps {
   onApiKeyChange: (key: string) => void;
 }
 
+interface RealTimePrice {
+  current: number;
+  change: number;
+  changePercent: number;
+  high: number;
+  low: number;
+  open: number;
+  previousClose: number;
+}
+
 const AssetDetails: React.FC<AssetDetailsProps> = ({ 
   selectedAsset, 
-  perplexityApiKey, 
+  perplexityApiKey: geminiApiKey, 
   onApiKeyChange 
 }) => {
   const [aiInsight, setAiInsight] = useState<string>('');
   const [isLoadingInsight, setIsLoadingInsight] = useState(false);
   const [beginnerMode, setBeginnerMode] = useState(false);
+  const [realTimePrice, setRealTimePrice] = useState<RealTimePrice | null>(null);
+  const [isLoadingPrice, setIsLoadingPrice] = useState(false);
   const { toast } = useToast();
 
+  const GEMINI_API_KEY = "AIzaSyAYmEj1tHJMiRm7lMsQbJ83Tf3IfkkY0Fg";
+  const FINNHUB_API_KEY = "d0ob5lhr01qu2361ioa0";
+
+  const fetchRealTimePrice = async (symbol: string) => {
+    if (!symbol) return;
+    
+    setIsLoadingPrice(true);
+    try {
+      // Adjust symbol format for different asset types
+      let finnhubSymbol = symbol;
+      if (selectedAsset?.category === 'crypto') {
+        finnhubSymbol = `BINANCE:${symbol}USDT`;
+      } else if (selectedAsset?.category === 'forex') {
+        finnhubSymbol = `OANDA:${symbol.replace('/', '_')}`;
+      }
+
+      const response = await fetch(
+        `https://finnhub.io/api/v1/quote?symbol=${finnhubSymbol}&token=${FINNHUB_API_KEY}`
+      );
+      
+      if (!response.ok) {
+        throw new Error(`Finnhub API Error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.c && data.pc) {
+        const change = data.c - data.pc;
+        const changePercent = (change / data.pc) * 100;
+        
+        setRealTimePrice({
+          current: data.c,
+          change: change,
+          changePercent: changePercent,
+          high: data.h,
+          low: data.l,
+          open: data.o,
+          previousClose: data.pc
+        });
+        
+        console.log('Real-time price data:', data);
+      }
+    } catch (error) {
+      console.error('Error fetching real-time price:', error);
+      toast({
+        title: "Price Fetch Error",
+        description: "Unable to fetch real-time price data",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoadingPrice(false);
+    }
+  };
+
   const generateAIInsight = async () => {
-    if (!selectedAsset || !perplexityApiKey) {
+    if (!selectedAsset || !GEMINI_API_KEY) {
       toast({
         title: "API Key Required",
-        description: "Please enter your Perplexity API key to get AI insights.",
+        description: "Gemini API key is required for AI insights.",
         variant: "destructive"
       });
       return;
@@ -48,51 +114,51 @@ const AssetDetails: React.FC<AssetDetailsProps> = ({
         ? "You are a financial advisor explaining complex market concepts in simple terms for beginners. Use analogies and avoid jargon."
         : "You are an expert financial analyst providing detailed market insights and analysis.";
 
-      const userPrompt = `Analyze ${selectedAsset.name} (${selectedAsset.symbol}) in the ${selectedAsset.category} market. 
-      Current price: ${selectedAsset.price}, Recent change: ${selectedAsset.change}%. 
-      Please provide insights on:
-      1. Recent price movements and potential causes
-      2. Relevant global events affecting this asset
-      3. Technical and fundamental analysis
-      4. Risk factors and opportunities
-      5. Market sentiment
-      Keep the response concise but comprehensive.`;
+      const currentPrice = realTimePrice ? realTimePrice.current : selectedAsset.price;
+      const currentChange = realTimePrice ? realTimePrice.changePercent : selectedAsset.change;
 
-      const response = await fetch('https://api.perplexity.ai/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${perplexityApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'llama-3.1-sonar-small-128k-online',
-          messages: [
-            {
-              role: 'system',
-              content: systemPrompt
-            },
-            {
-              role: 'user',
-              content: userPrompt
-            }
-          ],
-          temperature: 0.2,
-          top_p: 0.9,
-          max_tokens: 1000,
-          return_images: false,
-          return_related_questions: false,
-          search_recency_filter: 'week',
-          frequency_penalty: 1,
-          presence_penalty: 0
-        }),
-      });
+      const userPrompt = `${systemPrompt}
+
+Analyze ${selectedAsset.name} (${selectedAsset.symbol}) in the ${selectedAsset.category} market. 
+Current price: ${currentPrice}, Recent change: ${currentChange}%. 
+
+Please provide insights on:
+1. Recent price movements and potential causes
+2. Relevant global events affecting this asset
+3. Technical and fundamental analysis
+4. Risk factors and opportunities
+5. Market sentiment
+
+Keep the response concise but comprehensive (max 800 words).`;
+
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [
+                  {
+                    text: userPrompt
+                  }
+                ]
+              }
+            ]
+          }),
+        }
+      );
 
       if (!response.ok) {
-        throw new Error(`API Error: ${response.status}`);
+        throw new Error(`Gemini API Error: ${response.status}`);
       }
 
       const data = await response.json();
-      setAiInsight(data.choices[0].message.content);
+      const insight = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No insight generated';
+      setAiInsight(insight);
       
       toast({
         title: "AI Insight Generated",
@@ -102,13 +168,26 @@ const AssetDetails: React.FC<AssetDetailsProps> = ({
       console.error('Error generating AI insight:', error);
       toast({
         title: "Error",
-        description: "Failed to generate AI insight. Please check your API key.",
+        description: "Failed to generate AI insight. Please try again.",
         variant: "destructive"
       });
     } finally {
       setIsLoadingInsight(false);
     }
   };
+
+  // Fetch real-time price when asset changes
+  useEffect(() => {
+    if (selectedAsset) {
+      fetchRealTimePrice(selectedAsset.symbol);
+      // Set up periodic price updates every 30 seconds
+      const interval = setInterval(() => {
+        fetchRealTimePrice(selectedAsset.symbol);
+      }, 30000);
+      
+      return () => clearInterval(interval);
+    }
+  }, [selectedAsset]);
 
   if (!selectedAsset) {
     return (
@@ -124,29 +203,11 @@ const AssetDetails: React.FC<AssetDetailsProps> = ({
             
             <div className="mt-6 p-4 bg-muted/50 rounded-lg">
               <h4 className="font-medium mb-2 flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-amber-500" />
-                Perplexity API Key Required
+                <Brain className="w-4 h-4 text-purple-500" />
+                Powered by Google Gemini AI
               </h4>
               <p className="text-sm text-muted-foreground mb-3">
-                Enter your Perplexity API key to enable AI-powered market insights:
-              </p>
-              <Input
-                type="password"
-                placeholder="Enter your Perplexity API key"
-                value={perplexityApiKey}
-                onChange={(e) => onApiKeyChange(e.target.value)}
-                className="font-mono text-sm"
-              />
-              <p className="text-xs text-muted-foreground mt-2">
-                Get your API key from{" "}
-                <a 
-                  href="https://perplexity.ai" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-primary hover:underline"
-                >
-                  perplexity.ai
-                </a>
+                Real-time market insights powered by Google's advanced AI and Finnhub data.
               </p>
             </div>
           </div>
@@ -154,6 +215,9 @@ const AssetDetails: React.FC<AssetDetailsProps> = ({
       </Card>
     );
   }
+
+  const displayPrice = realTimePrice ? realTimePrice.current.toFixed(2) : selectedAsset.price;
+  const displayChange = realTimePrice ? realTimePrice.changePercent.toFixed(2) : selectedAsset.change;
 
   return (
     <div className="space-y-6">
@@ -172,31 +236,62 @@ const AssetDetails: React.FC<AssetDetailsProps> = ({
                 <p className="text-muted-foreground">{selectedAsset.symbol}</p>
               </div>
             </div>
-            <Badge variant="outline" className="capitalize">
-              {selectedAsset.category}
-            </Badge>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="capitalize">
+                {selectedAsset.category}
+              </Badge>
+              {realTimePrice && (
+                <Badge variant="secondary" className="text-xs">
+                  Live
+                </Badge>
+              )}
+            </div>
           </div>
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-6">
             <div>
               <p className="text-sm text-muted-foreground">Current Price</p>
-              <p className="text-3xl font-bold font-mono">{selectedAsset.price}</p>
+              <div className="flex items-center gap-2">
+                <p className="text-3xl font-bold font-mono">{displayPrice}</p>
+                {isLoadingPrice && <RefreshCw className="w-4 h-4 animate-spin" />}
+              </div>
             </div>
             <div className="flex items-center gap-2">
-              {selectedAsset.change > 0 ? (
+              {Number(displayChange) > 0 ? (
                 <TrendingUp className="w-5 h-5 text-bull-500" />
               ) : (
                 <TrendingDown className="w-5 h-5 text-bear-500" />
               )}
               <span className={`text-lg font-semibold ${
-                selectedAsset.change > 0 ? 'text-bull-600' : 'text-bear-600'
+                Number(displayChange) > 0 ? 'text-bull-600' : 'text-bear-600'
               }`}>
-                {selectedAsset.change > 0 ? '+' : ''}{selectedAsset.change}%
+                {Number(displayChange) > 0 ? '+' : ''}{displayChange}%
               </span>
               <span className="text-sm text-muted-foreground">24h</span>
             </div>
           </div>
+          
+          {realTimePrice && (
+            <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+              <div>
+                <p className="text-muted-foreground">Open</p>
+                <p className="font-mono">{realTimePrice.open.toFixed(2)}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">High</p>
+                <p className="font-mono text-bull-600">{realTimePrice.high.toFixed(2)}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Low</p>
+                <p className="font-mono text-bear-600">{realTimePrice.low.toFixed(2)}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Prev Close</p>
+                <p className="font-mono">{realTimePrice.previousClose.toFixed(2)}</p>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -222,7 +317,7 @@ const AssetDetails: React.FC<AssetDetailsProps> = ({
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <Brain className="w-5 h-5 text-purple-500" />
-              AI Market Insights
+              Gemini AI Market Insights
             </CardTitle>
             <div className="flex items-center gap-2">
               <Button
@@ -235,7 +330,7 @@ const AssetDetails: React.FC<AssetDetailsProps> = ({
               </Button>
               <Button 
                 onClick={generateAIInsight}
-                disabled={isLoadingInsight || !perplexityApiKey}
+                disabled={isLoadingInsight}
                 size="sm"
               >
                 {isLoadingInsight ? (
@@ -249,24 +344,7 @@ const AssetDetails: React.FC<AssetDetailsProps> = ({
           </div>
         </CardHeader>
         <CardContent>
-          {!perplexityApiKey ? (
-            <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
-              <div className="flex items-center gap-2 mb-2">
-                <AlertTriangle className="w-4 h-4 text-amber-600" />
-                <h4 className="font-medium text-amber-800 dark:text-amber-200">API Key Required</h4>
-              </div>
-              <p className="text-sm text-amber-700 dark:text-amber-300 mb-3">
-                Please enter your Perplexity API key to enable AI-powered insights:
-              </p>
-              <Input
-                type="password"
-                placeholder="Enter your Perplexity API key"
-                value={perplexityApiKey}
-                onChange={(e) => onApiKeyChange(e.target.value)}
-                className="font-mono text-sm bg-white dark:bg-gray-800"
-              />
-            </div>
-          ) : aiInsight ? (
+          {aiInsight ? (
             <div className="prose prose-sm max-w-none dark:prose-invert">
               <div className="whitespace-pre-wrap text-sm leading-relaxed">
                 {aiInsight}
@@ -275,7 +353,7 @@ const AssetDetails: React.FC<AssetDetailsProps> = ({
           ) : (
             <div className="text-center py-8">
               <Brain className="w-12 h-12 text-muted-foreground mx-auto mb-2" />
-              <p className="text-muted-foreground">Click "Generate Insight" to get AI-powered market analysis</p>
+              <p className="text-muted-foreground">Click "Generate Insight" to get Gemini AI-powered market analysis</p>
               <p className="text-sm text-muted-foreground mt-1">
                 {beginnerMode ? 'Beginner-friendly explanations enabled' : 'Expert analysis mode'}
               </p>
