@@ -30,7 +30,7 @@ const PriceChart: React.FC<PriceChartProps> = ({ selectedAsset, isDark = true })
   const [timeframe, setTimeframe] = useState('1D');
   const { toast } = useToast();
 
-  const FINNHUB_API_KEY = "d0ob5lhr01qu2361ioa0";
+  const FINNHUB_API_KEY = "d0ob5lhr01qu2361ioa0d0ob5lhr01qu2361ioag";
 
   const fetchChartData = async (symbol: string, resolution: string) => {
     if (!symbol) return;
@@ -138,6 +138,11 @@ const PriceChart: React.FC<PriceChartProps> = ({ selectedAsset, isDark = true })
       type: 'candlestick' as const,
       height: 350,
       background: 'transparent',
+      animations: {
+        enabled: true,
+        easing: 'easeinout',
+        speed: 800
+      },
       toolbar: {
         show: true,
         tools: {
@@ -149,16 +154,23 @@ const PriceChart: React.FC<PriceChartProps> = ({ selectedAsset, isDark = true })
           pan: true,
           reset: true
         }
+      },
+      zoom: {
+        enabled: true,
+        type: 'x' as const,
+        autoScaleYaxis: true
       }
     },
     theme: {
-      mode: isDark ? 'dark' : 'light' as const
+      mode: (isDark ? 'dark' : 'light') as 'dark' | 'light'
     },
     title: {
       text: selectedAsset ? `${selectedAsset.name} (${selectedAsset.symbol})` : 'Price Chart',
       align: 'left' as const,
       style: {
-        color: isDark ? '#ffffff' : '#000000'
+        color: isDark ? '#ffffff' : '#000000',
+        fontSize: '16px',
+        fontWeight: '600'
       }
     },
     xaxis: {
@@ -166,7 +178,16 @@ const PriceChart: React.FC<PriceChartProps> = ({ selectedAsset, isDark = true })
       labels: {
         style: {
           colors: isDark ? '#ffffff' : '#000000'
+        },
+        datetimeFormatter: {
+          year: 'yyyy',
+          month: 'MMM \'yy',
+          day: 'dd MMM',
+          hour: 'HH:mm'
         }
+      },
+      tooltip: {
+        enabled: false
       }
     },
     yaxis: {
@@ -177,23 +198,72 @@ const PriceChart: React.FC<PriceChartProps> = ({ selectedAsset, isDark = true })
         style: {
           colors: isDark ? '#ffffff' : '#000000'
         },
-        formatter: (value: number) => value.toFixed(2)
-      }
+        formatter: (value: number) => `$${value.toFixed(2)}`
+      },
+      opposite: true
     },
     grid: {
-      borderColor: isDark ? '#374151' : '#e5e7eb'
+      borderColor: isDark ? '#374151' : '#e5e7eb',
+      strokeDashArray: 3,
+      xaxis: {
+        lines: {
+          show: true
+        }
+      },
+      yaxis: {
+        lines: {
+          show: true
+        }
+      }
     },
     plotOptions: {
       candlestick: {
         colors: {
-          upward: '#10b981',
+          upward: '#22c55e',
           downward: '#ef4444'
+        },
+        wick: {
+          useFillColor: true
         }
       }
     },
     tooltip: {
-      theme: isDark ? 'dark' : 'light'
-    }
+      theme: (isDark ? 'dark' : 'light') as 'dark' | 'light',
+      shared: false,
+      custom: function({ seriesIndex, dataPointIndex, w }) {
+        const data = w.globals.initialSeries[seriesIndex].data[dataPointIndex];
+        const [open, high, low, close] = data.y;
+        const date = new Date(data.x);
+        
+        return `
+          <div class="p-3 ${isDark ? 'bg-gray-800 text-white' : 'bg-white text-gray-800'} border border-gray-300 rounded shadow-lg">
+            <div class="font-semibold mb-2">${date.toLocaleDateString()} ${date.toLocaleTimeString()}</div>
+            <div class="grid grid-cols-2 gap-2 text-sm">
+              <div>Open: <span class="font-mono">$${open.toFixed(2)}</span></div>
+              <div>High: <span class="font-mono text-green-500">$${high.toFixed(2)}</span></div>
+              <div>Low: <span class="font-mono text-red-500">$${low.toFixed(2)}</span></div>
+              <div>Close: <span class="font-mono">$${close.toFixed(2)}</span></div>
+            </div>
+          </div>
+        `;
+      }
+    },
+    stroke: {
+      width: 1
+    },
+    responsive: [{
+      breakpoint: 768,
+      options: {
+        chart: {
+          height: 300
+        },
+        yaxis: {
+          labels: {
+            formatter: (value: number) => `$${value.toFixed(0)}`
+          }
+        }
+      }
+    }]
   };
 
   const series = [{
@@ -206,9 +276,9 @@ const PriceChart: React.FC<PriceChartProps> = ({ selectedAsset, isDark = true })
       <Card className="glass-card">
         <CardContent className="p-8 text-center">
           <TrendingUp className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-xl font-semibold mb-2">Price Chart</h3>
+          <h3 className="text-xl font-semibold mb-2">Advanced Trading Chart</h3>
           <p className="text-muted-foreground">
-            Select an asset to view its price chart
+            Select an asset to view its interactive candlestick chart with advanced trading features
           </p>
         </CardContent>
       </Card>
@@ -219,7 +289,10 @@ const PriceChart: React.FC<PriceChartProps> = ({ selectedAsset, isDark = true })
     <Card className="glass-card">
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle>Price Chart</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <TrendingUp className="w-5 h-5 text-blue-500" />
+            Trading Chart
+          </CardTitle>
           <div className="flex items-center gap-2">
             <div className="flex bg-muted rounded-lg p-1">
               {['1D', '1W', '1M', '1Y'].map((tf) => (
