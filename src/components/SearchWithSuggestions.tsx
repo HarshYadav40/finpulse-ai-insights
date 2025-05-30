@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, TrendingUp, TrendingDown } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -197,7 +196,7 @@ const SearchWithSuggestions: React.FC<SearchWithSuggestionsProps> = ({
       </div>
 
       {showSuggestions && (filteredSuggestions.length > 0 || searchQuery.length > 0) && (
-        <Card className="absolute top-full left-0 right-0 mt-1 z-50 bg-background/95 backdrop-blur-sm border shadow-lg max-h-96 overflow-y-auto">
+        <Card className="absolute top-full left-0 right-0 mt-1 z-[9999] bg-background border shadow-2xl max-h-96 overflow-y-auto">
           <div className="p-2">
             {filteredSuggestions.length > 0 ? (
               filteredSuggestions.map((item) => (
