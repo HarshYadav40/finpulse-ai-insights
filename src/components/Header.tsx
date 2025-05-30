@@ -3,17 +3,32 @@ import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { TrendingUp, TrendingDown, Search, Settings, Moon, Sun } from 'lucide-react';
-import { Input } from '@/components/ui/input';
+import { TrendingUp, Settings, Moon, Sun } from 'lucide-react';
+import SearchWithSuggestions from './SearchWithSuggestions';
+
+interface Asset {
+  symbol: string;
+  name: string;
+  price: string;
+  change: number;
+  category: 'stock' | 'crypto' | 'forex' | 'index';
+}
 
 interface HeaderProps {
   onSearch: (query: string) => void;
   searchQuery: string;
   isDark: boolean;
   onThemeToggle: () => void;
+  onAssetSelect: (asset: Asset) => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ onSearch, searchQuery, isDark, onThemeToggle }) => {
+const Header: React.FC<HeaderProps> = ({ 
+  onSearch, 
+  searchQuery, 
+  isDark, 
+  onThemeToggle,
+  onAssetSelect 
+}) => {
   return (
     <Card className="p-6 mb-6 glass-card">
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
@@ -30,15 +45,11 @@ const Header: React.FC<HeaderProps> = ({ onSearch, searchQuery, isDark, onThemeT
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="relative flex-1 lg:flex-none lg:w-80">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-            <Input
-              placeholder="Search stocks, crypto, forex, indices..."
-              value={searchQuery}
-              onChange={(e) => onSearch(e.target.value)}
-              className="pl-10 bg-background/50 backdrop-blur-sm"
-            />
-          </div>
+          <SearchWithSuggestions
+            onAssetSelect={onAssetSelect}
+            searchQuery={searchQuery}
+            onSearchChange={onSearch}
+          />
           
           <Button variant="outline" size="icon" onClick={onThemeToggle}>
             {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}

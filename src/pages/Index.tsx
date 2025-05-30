@@ -75,6 +75,7 @@ const Index = () => {
           searchQuery={searchQuery}
           isDark={isDark}
           onThemeToggle={handleThemeToggle}
+          onAssetSelect={handleAssetSelect}
         />
         
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
