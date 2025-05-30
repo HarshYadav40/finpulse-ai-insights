@@ -196,36 +196,45 @@ const SearchWithSuggestions: React.FC<SearchWithSuggestionsProps> = ({
       </div>
 
       {showSuggestions && (filteredSuggestions.length > 0 || searchQuery.length > 0) && (
-        <Card className="absolute top-full left-0 right-0 mt-1 z-[9999] bg-background border shadow-2xl max-h-96 overflow-y-auto">
-          <div className="p-2">
-            {filteredSuggestions.length > 0 ? (
-              filteredSuggestions.map((item) => (
-                <div
-                  key={`${item.category}-${item.symbol}`}
-                  onClick={() => handleSuggestionClick(item)}
-                  className="flex items-center justify-between p-3 rounded-lg hover:bg-accent cursor-pointer transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <Badge className={`${getCategoryColor(item.category)} text-white text-xs`}>
-                      {getCategoryLabel(item.category)}
-                    </Badge>
-                    <div>
-                      <div className="font-medium text-sm">{item.symbol}</div>
-                      <div className="text-xs text-muted-foreground truncate max-w-48">
-                        {item.name}
+        <div className="fixed inset-0 z-[99999] pointer-events-none">
+          <Card 
+            className="absolute bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-2xl max-h-96 overflow-y-auto pointer-events-auto"
+            style={{
+              top: searchRef.current ? searchRef.current.getBoundingClientRect().bottom + window.scrollY + 4 : 0,
+              left: searchRef.current ? searchRef.current.getBoundingClientRect().left + window.scrollX : 0,
+              width: searchRef.current ? searchRef.current.getBoundingClientRect().width : 320,
+            }}
+          >
+            <div className="p-2">
+              {filteredSuggestions.length > 0 ? (
+                filteredSuggestions.map((item) => (
+                  <div
+                    key={`${item.category}-${item.symbol}`}
+                    onClick={() => handleSuggestionClick(item)}
+                    className="flex items-center justify-between p-3 rounded-lg hover:bg-accent cursor-pointer transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Badge className={`${getCategoryColor(item.category)} text-white text-xs`}>
+                        {getCategoryLabel(item.category)}
+                      </Badge>
+                      <div>
+                        <div className="font-medium text-sm">{item.symbol}</div>
+                        <div className="text-xs text-muted-foreground truncate max-w-48">
+                          {item.name}
+                        </div>
                       </div>
                     </div>
+                    <TrendingUp className="w-4 h-4 text-muted-foreground" />
                   </div>
-                  <TrendingUp className="w-4 h-4 text-muted-foreground" />
+                ))
+              ) : (
+                <div className="p-4 text-center text-muted-foreground text-sm">
+                  No assets found matching "{searchQuery}"
                 </div>
-              ))
-            ) : (
-              <div className="p-4 text-center text-muted-foreground text-sm">
-                No assets found matching "{searchQuery}"
-              </div>
-            )}
-          </div>
-        </Card>
+              )}
+            </div>
+          </Card>
+        </div>
       )}
     </div>
   );
